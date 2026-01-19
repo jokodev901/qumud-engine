@@ -35,7 +35,6 @@ if __name__ == '__main__':
 
     while True:
         bfs = []
-        populated_bfs = []
         for _ in range(min(teamsize, 50)):
             bfs.append([' '] * event.size)
 
@@ -74,11 +73,12 @@ if __name__ == '__main__':
                     break
 
         i = len(bfs) - 1
-        while i > 1:
+        while i >= 0:
             if i % 2 == 0:
                 print(''.join(bfs[i]))
             i -= 1
 
+        i = 0
         while i < len(bfs):
             if i % 2 == 1:
                 print(''.join(bfs[i]))
