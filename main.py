@@ -17,15 +17,13 @@ if __name__ == '__main__':
     teamsize = 100
 
     classes = [
-        Entity(name='Pikeman', attackrate=1, damage=1, health=15, range=2, speed=1, max_targets=2, initiative=5),
-        Entity(name='Berserker', attackrate=1, damage=5, health=10, range=1, speed=5, initiative=20),
-        Entity(name='Archer', attackrate=1, damage=1, health=5, range=4, speed=2),
-        Entity(name='Swordman', attackrate=1, damage=1, health=20, range=1, speed=2, initiative=10),
-        Entity(name='Mage', attackrate=1, damage=1, health=5, range=3, speed=2, max_targets=3),
+        Entity(name='Pikeman', attackrate=1, damage=1, health=15, range=2, speed=1, max_targets=2, stance='skirmish', initiative=5),
+        Entity(name='Berserker', attackrate=1, damage=5, health=10, range=1, speed=4, stance='skirmish', initiative=10),
+        Entity(name='Archer', attackrate=1, damage=1, health=5, range=4, speed=3, stance='skirmish'),
+        Entity(name='Swordman', attackrate=1, damage=2, health=20, range=1, speed=2, stance='skirmish', initiative=5),
+        Entity(name='Mage', attackrate=1, damage=1, health=5, range=3, speed=2, stance='skirmish', max_targets=3),
+        Entity(name='Cavalry', attackrate=1, damage=3, health=15, range=2, speed=5, stance='assassin', max_targets=2),
     ]
-
-    playerlist = []
-    enemylist = []
 
     for _ in range(teamsize):
         x = copy.deepcopy(classes[random.randint(0, len(classes) - 1)])
@@ -54,6 +52,8 @@ if __name__ == '__main__':
                         battlefield[player.position] = 'S'
                     if player.name == 'MageP':
                         battlefield[player.position] = 'M'
+                    if player.name == 'CavalryP':
+                        battlefield[player.position] = 'H'
                     break
 
         for enemy in event.enemies:
@@ -69,10 +69,20 @@ if __name__ == '__main__':
                         battlefield[enemy.position] = 's'
                     if enemy.name == 'Mage':
                         battlefield[enemy.position] = 'm'
+                    if enemy.name == 'Cavalry':
+                        battlefield[enemy.position] = 'h'
                     break
 
-        for battlefield in bfs:
-            print(''.join(battlefield))
+        i = len(bfs) - 1
+        while i > 1:
+            if i % 2 == 0:
+                print(''.join(bfs[i]))
+            i -= 1
+
+        while i < len(bfs):
+            if i % 2 == 1:
+                print(''.join(bfs[i]))
+            i += 1
 
         time.sleep(1)
         os.system('cls' if os.name == 'nt' else 'clear')

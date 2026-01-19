@@ -11,6 +11,7 @@ class Entity:
                  health: int,
                  range: int,
                  speed: int,
+                 stance: str,
                  initiative: int = 1,
                  max_targets: int = 1) -> None:
         self.id = str(uuid.uuid4())
@@ -27,6 +28,7 @@ class Entity:
         self.last_attack = None
         self.targets = []
         self.event = None
+        self.stance = stance
 
     def attack(self, entity: Entity) -> int | None:
         entity.suffer(self.damage)
@@ -55,19 +57,36 @@ class Entity:
 
         return inner_distance, 'inner'
 
-    def update_targets(self) -> list | None:
+    def update_targets(self, prio_key: str, reverse: bool, sticky: bool) -> list | None:
         """
-        If entity is in an event, update list of targets by vicinity
+        Pick a primary target based on prio_key criteria, add additional targets by distance
+
+        prio_key: entity key value to prioritize
+        reverse: whether to prioritize prio_key value by reverse order (descending)
+        sticky: optionally adds a uuid-based secondary sort to ensure initial target is maintained, only works for
+                fixed values like range, initiative, speed
         """
+
         if self.event:
             elist = []
             etype = self.event.enemies if self.isplayer else self.event.players
 
             for e in etype:
                 tdis, tdir = self.shortest_distance(e.position)
-                elist.append({'target': e, 'distance': tdis, 'direction': tdir})
+                elist.append({'target': e, 'range': e.range, 'distance': tdis, 'direction': tdir, 'id': e.id})
 
-            self.targets = sorted(elist, key=itemgetter('distance'))[:self.max_targets]
+            if sticky:
+                elist = sorted(elist, key=itemgetter('id'))
+
+            targets = sorted(elist, key=itemgetter(prio_key), reverse=reverse)[:1]
+            remainder = sorted(elist, key=itemgetter(prio_key), reverse=reverse)[1:]
+
+            if self.max_targets > 1:
+                secondary_targets = sorted(remainder, key=itemgetter('distance'))[:self.max_targets - 1]
+                targets += secondary_targets
+
+            self.targets = targets
+
             return self.targets
 
         return None

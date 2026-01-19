@@ -32,7 +32,7 @@ class Event:
             f.write(combat_log_output)
 
     def add_player(self, player: Entity) -> None:
-        player.position = (int((self.size / 2) - random.randrange(5,15))) + player.initiative
+        player.position = (int((self.size / 2) - random.randrange(10,20))) + player.initiative
         player.name += 'P'
         if self.debug:
             print(f'adding player {player.name} at position {player.position}')
@@ -41,7 +41,7 @@ class Event:
         self.players.append(player)
 
     def add_enemy(self, enemy: Entity) -> None:
-        enemy.position = (int((self.size / 2) + random.randrange(5, 15))) - enemy.initiative
+        enemy.position = (int((self.size / 2) + random.randrange(10, 20))) - enemy.initiative
         if self.debug:
             print(f'adding enemy {enemy.name} at position {enemy.position}')
         enemy.event = self
@@ -51,24 +51,92 @@ class Event:
         entity.position = (entity.position + entity.speed) % self.size
 
     def combat_log(self, msg: str) -> None:
+        if self.debug:
+            print(msg)
         print(msg, file=self.combat_log_buffer)
 
     def debug_log(self, msg: str) -> None:
         print(msg, file=self.debug_log_buffer)
 
-    def process_actions(self, entity: Entity) -> None:
-        # Targeting (opportunistic)
-        targets = entity.update_targets()
+    def action_assassin(self, entity: Entity) -> None:
+        """
+        Entity will prioritize target with the greatest range, and will not switch targets until dead
+
+        """
+
+        targets = entity.update_targets(prio_key='range', reverse=True, sticky=True)
+
         if self.debug:
             print(f'{entity.name} is at position {entity.position} before processing actions')
 
         move_buffer = []
         attack_buffer = []
         will_move = False
-        i = 0
 
+        i = 0
         for target in targets:
-            i += 1 # only evaluate moving based on nearest target
+            i += 1
+
+            # if we flag will_move then no reason to continue evaluating other targets
+            if will_move:
+                break
+
+            if self.debug:
+                print(f'{entity.name} looping targets: {target['target'].name}, {target['distance']},'
+                      f' {target['target'].position}')
+
+            not_in_atk_range = entity.range < target['distance']
+
+            if not_in_atk_range and i == 1:
+                will_move = True
+                dir = 1 if entity.position < target['target'].position else -1
+
+                # Flip direction if outer
+                if target['direction'] != 'inner':
+                    dir *= -1
+
+                distance = (min(entity.speed, (abs(target['distance'] - entity.range)))) * dir
+                move_buffer.append((entity, distance))
+
+                if self.debug:
+                    print(f'{entity.name} move {distance} with range {entity.range} based on:'
+                          f'target: {target['target'].name} distance: {target["distance"]} range: {target['target'].range}'
+                          f' not_in_atk_range: {not_in_atk_range}')
+
+            else:
+                if target['distance'] <= entity.range:
+                    attack_buffer.append((entity, target['target']))
+
+        if will_move:
+            self.move_buffer += move_buffer
+        else:
+            self.attack_buffer += attack_buffer
+
+
+
+    def action_skirmish(self, entity: Entity) -> None:
+        """
+        Entity will prioritize targeting the closest targets, opting to "back up" and out-range when viable
+
+        Define skirmish-specific actions here
+        """
+
+        targets = entity.update_targets(prio_key='distance', reverse=False, sticky=False)
+
+        if self.debug:
+            print(f'{entity.name} is at position {entity.position} before processing actions')
+
+        move_buffer = []
+        attack_buffer = []
+        will_move = False
+
+        i = 0
+        for target in targets:
+            i += 1
+
+            # if we flag will_move then no reason to continue evaluating other targets
+            if will_move:
+                break
 
             if self.debug:
                 print(f'{entity.name} looping targets: {target['target'].name}, {target['distance']},'
@@ -114,11 +182,20 @@ class Event:
         else:
             self.attack_buffer += attack_buffer
 
+    def process_actions(self, entity: Entity) -> None:
+        if entity.stance == 'skirmish':
+            self.action_skirmish(entity)
 
-    def update(self):
+        elif entity.stance == 'assassin':
+            self.action_assassin(entity)
+
+
+    def update(self) -> None:
         if self.active:
             tickrate = 1
             ticks = math.floor((time.time() - self.last_updated) / tickrate)
+            if self.debug:
+                ticks = 1
 
             if ticks >= tickrate:
                 if self.debug:
