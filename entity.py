@@ -12,7 +12,7 @@ class Entity:
                  range: int,
                  speed: int,
                  stance: str,
-                 initiative: int = 1,
+                 initiative: int = 0,
                  max_targets: int = 1) -> None:
         self.id = str(uuid.uuid4())
         self.isplayer = False

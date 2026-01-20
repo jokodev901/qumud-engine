@@ -73,10 +73,7 @@ class Event:
         attack_buffer = []
         will_move = False
 
-        i = 0
         for target in targets:
-            i += 1
-
             # if we flag will_move then no reason to continue evaluating other targets
             if will_move:
                 break
@@ -87,7 +84,7 @@ class Event:
 
             not_in_atk_range = entity.range < target['distance']
 
-            if not_in_atk_range and i == 1:
+            if not_in_atk_range:
                 will_move = True
                 dir = 1 if entity.position < target['target'].position else -1
 
@@ -130,10 +127,7 @@ class Event:
         attack_buffer = []
         will_move = False
 
-        i = 0
         for target in targets:
-            i += 1
-
             # if we flag will_move then no reason to continue evaluating other targets
             if will_move:
                 break
@@ -147,7 +141,7 @@ class Event:
                                       / max(target['target'].speed, 1))) >= 2
             in_enemy_range = target['target'].range >= target['distance']
 
-            if (not_in_atk_range or (worth_kiting and in_enemy_range)) and i == 1:
+            if not_in_atk_range or (worth_kiting and in_enemy_range):
                 will_move = True
                 dir = 1 if entity.position < target['target'].position else -1
 
