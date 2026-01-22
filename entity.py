@@ -19,6 +19,7 @@ class Entity:
         self.name = name
         self.attackrate = attackrate
         self.damage = damage
+        self.max_health = health
         self.health = health
         self.range = range
         self.speed = speed

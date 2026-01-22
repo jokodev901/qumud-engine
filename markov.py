@@ -195,3 +195,24 @@ class MarkovNameGenerator:
                 seen.add(item)
             results.append(item)
         return results
+
+
+if __name__ == "__main__":
+    CORPUS = [
+        "Gold", "Silver", "Platinum", "Palladium", "Copper", "Iron", "Tin", "Lead",
+        "Zinc", "Nickel", "Aluminum", "Titanium", "Magnesium", "Tungsten", "Cobalt",
+        "Chromium", "Manganese", "Mercury", "Antimony", "Bismuth",
+        "Uranium", "Thorium", "Plutonium", "Lithium", "Neodymium", "Yttrium",
+        "Lanthanum", "Cerium", "Iridium", "Osmium", "Rhodium", "Ruthenium",
+        "Steel", "Bronze", "Brass", "Electrum", "Pewter", "Inconel", "Solder", "Chrome",
+        "Diamond", "Ruby", "Sapphire", "Emerald", "Amethyst", "Citrine", "Jadeite",
+        "Nephrite", "Opal", "Garnet", "Zircon", "Turquoise",  "Obsidian",
+    ]
+    seed = '516823115'
+    count = 15
+
+    gen = MarkovNameGenerator(order=3, seed=seed, normalize_case=True)
+    gen.fit(CORPUS)
+    values = gen.generate_many(k=count, max_len=12, min_len=4, avoid_training=True)
+    for v in values:
+        print(v)

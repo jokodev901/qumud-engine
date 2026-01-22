@@ -27,7 +27,7 @@ def generate_entity(name: str, seed: object, level: int) -> Entity:
     health = math.floor(rand_health.uniform(1, 5) * (level * 2))
     range = math.floor(rand_range.uniform(1, 3) + (level * rand_range.uniform(0.01, 0.04)))
     speed = math.floor(rand_speed.uniform(1, 2.5) + (level * rand_speed.uniform(0.05, 0.1)))
-    damage = math.floor(rand_dmg.uniform(1, 2) + (level / 5))
+    damage = math.floor(rand_dmg.uniform(1, 2) + (level / rand_dmg.uniform(2, 5)))
 
     max_targets = 1
     initiative = random.randint(0, 5)
@@ -74,7 +74,7 @@ def generate_monsters(count: int, seed: object, level: int) -> list[Entity]:
 
 if __name__ == '__main__':
     seed = 1234
-    level = 100
+    level = 1
     count = 10
 
     monsters = generate_monsters(count=count, seed=seed, level=level)

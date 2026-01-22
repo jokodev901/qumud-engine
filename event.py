@@ -17,19 +17,14 @@ class Event:
         self.move_buffer = []
         self.last_updated = time.time()
         self.debug = debug
-        self.combat_log_buffer = io.StringIO()
-        self.debug_log_buffer = io.StringIO()
+        self.combat_log_buffer = []
+        self.combat_log = []
+        self.status_log = []
+        self.debug_log_buffer = []
         self.active = True
 
     def end(self) -> None:
         self.active = False
-        combat_log_output = self.combat_log_buffer.getvalue()
-        self.combat_log_buffer.close()
-        self.debug_log_buffer.close()
-
-        file_path = "combat_log.txt"
-        with open(file_path, "w") as f:
-            f.write(combat_log_output)
 
     def add_player(self, player: Entity) -> None:
         player.position = (int((self.size / 2) - random.randrange(10,20))) + player.initiative
@@ -49,14 +44,79 @@ class Event:
 
     def move_entity(self, entity: Entity) -> None:
         entity.position = (entity.position + entity.speed) % self.size
+        
+    def update_combat_log(self):
+        if not self.combat_log_buffer:
+            timestamp = 0
+            buffer = []
+        else:
+            timestamp = time.time()
+            buffer = self.combat_log_buffer
 
-    def combat_log(self, msg: str) -> None:
+        self.combat_log.append({'time': timestamp, 'logs': buffer})
+        self.clear_combat_log_buffer()
+
+    def write_combat_log(self, msg: str) -> None:
         if self.debug:
             print(msg)
-        print(msg, file=self.combat_log_buffer)
+        self.combat_log_buffer.append({'time': time.time(), 'msg': msg})
 
-    def debug_log(self, msg: str) -> None:
-        print(msg, file=self.debug_log_buffer)
+    def read_combat_log(self, min_time: float = None, max_time: float = None) -> list:
+        buffer = self.combat_log
+
+        if min_time:
+            buffer = [log for log in buffer if log['time'] >= min_time]
+        if max_time:
+            buffer = [log for log in buffer if log['time'] <= max_time]
+
+        return buffer
+
+    def clear_combat_log_buffer(self) -> None:
+        self.combat_log_buffer = []
+        
+    def update_status_log(self) -> None:
+        if not self.status_log:
+            timestamp = 0
+        else:
+            timestamp = time.time()
+
+        plist = []
+        elist = []
+
+
+        for player in self.players:
+            plist.append({k: v for k, v in player.__dict__.items() if not k.startswith('__')})
+
+        for enemy in self.enemies:
+            elist.append({k: v for k, v in enemy.__dict__.items() if not k.startswith('__')})
+
+        status = {'time': timestamp, 'players': plist, 'enemies': elist}
+        self.status_log.append(status)
+
+    def read_status_log(self, min_time: float = None, max_time: float = None) -> list:
+        buffer = self.status_log
+
+        if min_time:
+            buffer = [status for status in buffer if status['time'] >= min_time]
+
+        if max_time:
+            buffer = [status for status in buffer if status['time'] <= max_time]
+
+        return buffer
+
+    def clear_status_log(self) -> None:
+        self.status_log = []
+        
+    def write_debug_log(self, msg: str) -> None:
+        if self.debug:
+            print(msg)
+        self.debug_log_buffer.append(msg)
+
+    def read_debug_log(self) -> list:
+        return self.debug_log_buffer
+
+    def clear_debug_log(self) -> None:
+        self.debug_log_buffer = []
 
     def action_assassin(self, entity: Entity) -> None:
         """
@@ -188,6 +248,7 @@ class Event:
         if self.active:
             tickrate = 1
             ticks = math.floor((time.time() - self.last_updated) / tickrate)
+
             if self.debug:
                 ticks = 1
 
@@ -202,7 +263,7 @@ class Event:
                             self.process_actions(entity=player)
                         else:
                             msg = "All enemies are dead"
-                            self.combat_log(msg)
+                            self.write_combat_log(msg)
                             print(msg)
                             self.end()
                             return
@@ -212,7 +273,7 @@ class Event:
                             self.process_actions(entity=enemy)
                         else:
                             msg = "All players are dead"
-                            self.combat_log(msg)
+                            self.write_combat_log(msg)
                             print(msg)
                             self.end()
                             return
@@ -221,33 +282,31 @@ class Event:
                     if self.attack_buffer:
                         for attack in self.attack_buffer:
                             logmsg = f'{attack[0].name} hits {attack[1].name} for {attack[0].damage} damage'
-                            self.combat_log(logmsg)
+                            self.write_combat_log(logmsg)
                             attack[0].attack(entity=attack[1])
 
                     # evaluate enemy health
                     for enemy in self.enemies:
                         if enemy.health <= 0:
-                            self.combat_log(f'{enemy.name} is dead')
+                            self.write_combat_log(f'{enemy.name} is dead')
                             self.enemies.remove(enemy)
-                        else:
-                            self.combat_log(f'{enemy.name} health {enemy.health}')
 
                     # evaluate players health
                     for idx, player in enumerate(self.players):
                         if player.health <= 0:
-                            self.combat_log(f'{player.name} is dead')
+                            self.write_combat_log(f'{player.name} is dead')
                             del self.players[idx]
-                        else:
-                            self.combat_log(f'{player.name} health: {player.health}')
 
                     # apply buffered move actions
                     if self.move_buffer:
                         for move in self.move_buffer:
                             if move[0] not in self.players and move[0] not in self.enemies:
                                 continue
-                            self.combat_log(f'{move[0].name} moves {move[1]}')
+                            self.write_combat_log(f'{move[0].name} moves {move[1]}')
                             move[0].move(distance=move[1])
 
+                    self.update_status_log()
+                    self.update_combat_log()
                     self.attack_buffer = []
                     self.move_buffer = []
 
